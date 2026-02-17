@@ -21,28 +21,35 @@ ZONA_HORARIA = 'Europe/Madrid'
 bot = telebot.TeleBot(TOKEN)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
 
-# TEXTO EXACTO DEL SISTEMA NABIL
+# TEXTO DEL SISTEMA
 TEXTO_SISTEMA_VIP = (
     "🏆 *SISTEMA NABIL INVERSIONES*\n\n"
     "✅ *Tasa de éxito:* 100% Garantizado.\n"
     "✅ *Mercado:* Acciones de Empresas (Seguridad Total).\n"
     "✅ *Capital:* Protegido y respaldado.\n\n"
-    "💰 *PARA GANAR DINERO DEBES CONTACTAR CON NABIL*\n"
-    "Pulsa el botón de abajo para activar tu cuenta ahora mismo."
+    "💰 *PARA GANAR DINERO DEBES REGISTRARTE Y CONTACTAR CON NABIL*"
 )
 
-# FUNCIÓN DE BOTONES CON LAS DOS OPCIONES DE CONTACTO
+# FUNCIÓN DE BOTONES CON TU ENLACE DE QVSE Y CONTACTO DOBLE
 def botones_vip():
     markup = InlineKeyboardMarkup()
-    btn_registro = InlineKeyboardButton("🚀 REGISTRO VIP", url="https://t.me/NabilInversiones")
+    
+    # Botón de Registro con tu enlace de invitación
+    enlace_qvse = "https://qvselp.com/#/pages/auth-signup/index?inviteCode=3LVZ"
+    btn_registro = InlineKeyboardButton("🚀 REGISTRO EN QVSE", url=enlace_qvse)
+    
+    # Opción 1: Ganar dinero (Mensaje precargado)
     btn_ganar = InlineKeyboardButton("💰 GANAR DINERO", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20empezar%20a%20ganar%20dinero")
+    
+    # Opción 2: Información (Mensaje precargado)
     btn_info = InlineKeyboardButton("ℹ️ INFORMACIÓN", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20informacion")
+    
     markup.add(btn_registro)
     markup.add(btn_ganar, btn_info) 
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES MOTIVADORAS (ÍNTEGRAS)
+# 2. FRASES MOTIVADORAS (LAS 100)
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -148,15 +155,14 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 3. LÓGICA DE ANCLAR Y DESANCLAR
+# 3. FUNCIONES DE ENVÍO Y ANCLADO
 # ==========================================
 
 def refrescar_fijado(nuevo_mensaje):
     try:
         bot.unpin_all_chat_messages(GRUPO_ID)
         bot.pin_chat_message(GRUPO_ID, nuevo_mensaje.message_id)
-    except Exception as e:
-        print(f"Error fijando: {e}")
+    except: pass
 
 def enviar_frase_cada_2h():
     try:
@@ -174,13 +180,26 @@ def enviar_imagen_vip():
             if fotos:
                 foto = random.choice(fotos)
                 with open(os.path.join(carpeta, foto), 'rb') as p:
-                    msg = bot.send_photo(GRUPO_ID, p, caption=f"📈 *RESULTADOS ACTUALIZADOS*\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
+                    msg = bot.send_photo(GRUPO_ID, p, caption=f"📈 *RESULTADOS*\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
                     refrescar_fijado(msg)
     except: pass
 
 # ==========================================
-# 4. HORARIOS Y SERVIDOR
+# 4. COMANDO MANUAL /LINK
 # ==========================================
+
+@bot.message_handler(commands=['link'])
+def comando_link(m):
+    if m.from_user.id == ADMIN_ID:
+        bot.reply_to(m, "🔗 Enviando sistema con enlace QVSE al grupo...")
+        enviar_imagen_vip()
+    else:
+        bot.reply_to(m, "❌ No tienes permiso para usar este comando.")
+
+# ==========================================
+# 5. HORARIOS Y SERVIDOR
+# ==========================================
+
 horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
 for h in horas_frases:
     schedule.every().day.at(h).do(enviar_frase_cada_2h)
@@ -198,9 +217,6 @@ def scheduler_loop():
         schedule.run_pending()
         time.sleep(30)
 
-# ==========================================
-# 5. LIMPIEZA DE BASURA Y BIENVENIDA
-# ==========================================
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
 def limpiar_y_bienvenida(m):
     try: bot.delete_message(m.chat.id, m.message_id)
@@ -212,14 +228,12 @@ def limpiar_y_bienvenida(m):
                 bot.send_message(m.chat.id, saludo, parse_mode="Markdown", reply_markup=botones_vip())
 
 # ==========================================
-# 6. INICIO AGRESIVO (CORRECCIÓN ERROR 409)
+# 6. INICIO AGRESIVO
 # ==========================================
 if __name__ == "__main__":
     Thread(target=run_server, daemon=True).start()
     Thread(target=scheduler_loop, daemon=True).start()
-    
     bot.remove_webhook()
     time.sleep(2)
-    
-    print("🚀 Sistema Nabil Inversiones ONLINE.")
+    print("🚀 Bot Nabil listo. Usa /link en el privado.")
     bot.infinity_polling(timeout=10, long_polling_timeout=5)
