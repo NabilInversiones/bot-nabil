@@ -34,16 +34,9 @@ TEXTO_SISTEMA_VIP = (
 # FUNCIÓN DE BOTONES CON LAS DOS OPCIONES DE CONTACTO
 def botones_vip():
     markup = InlineKeyboardMarkup()
-    
-    # Botón Principal de Registro
     btn_registro = InlineKeyboardButton("🚀 REGISTRO VIP", url="https://t.me/NabilInversiones")
-    
-    # Opción 1: Ganar dinero (Mensaje precargado)
     btn_ganar = InlineKeyboardButton("💰 GANAR DINERO", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20empezar%20a%20ganar%20dinero")
-    
-    # Opción 2: Información (Mensaje precargado)
     btn_info = InlineKeyboardButton("ℹ️ INFORMACIÓN", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20informacion")
-    
     markup.add(btn_registro)
     markup.add(btn_ganar, btn_info) 
     return markup
@@ -159,25 +152,21 @@ frases_motivadoras = [
 # ==========================================
 
 def refrescar_fijado(nuevo_mensaje):
-    """Desancla TODO del chat y ancla el último mensaje enviado"""
     try:
         bot.unpin_all_chat_messages(GRUPO_ID)
         bot.pin_chat_message(GRUPO_ID, nuevo_mensaje.message_id)
     except Exception as e:
-        print(f"Error al gestionar anclado: {e}")
+        print(f"Error fijando: {e}")
 
 def enviar_frase_cada_2h():
-    """Envía texto motivador + el Sistema Nabil"""
     try:
         frase = random.choice(frases_motivadoras)
         texto = f"✨ *{frase}*\n\n---\n{TEXTO_SISTEMA_VIP}"
         msg = bot.send_message(GRUPO_ID, texto, parse_mode="Markdown", reply_markup=botones_vip())
         refrescar_fijado(msg)
-    except Exception as e:
-        print(f"Error enviando frase: {e}")
+    except: pass
 
 def enviar_imagen_vip():
-    """Envía imagen de la carpeta 'imagenes' + Sistema Nabil"""
     try:
         carpeta = "imagenes"
         if os.path.exists(carpeta):
@@ -185,62 +174,52 @@ def enviar_imagen_vip():
             if fotos:
                 foto = random.choice(fotos)
                 with open(os.path.join(carpeta, foto), 'rb') as p:
-                    msg = bot.send_photo(
-                        GRUPO_ID, p, 
-                        caption=f"📈 *RESULTADOS ACTUALIZADOS*\n\n{TEXTO_SISTEMA_VIP}", 
-                        parse_mode="Markdown", 
-                        reply_markup=botones_vip()
-                    )
+                    msg = bot.send_photo(GRUPO_ID, p, caption=f"📈 *RESULTADOS ACTUALIZADOS*\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
                     refrescar_fijado(msg)
-    except Exception as e:
-        print(f"Error enviando imagen: {e}")
+    except: pass
 
 # ==========================================
-# 4. HORARIOS (MADRID)
+# 4. HORARIOS Y SERVIDOR
 # ==========================================
-# 10 frases al día cada 2 horas aproximadamente
 horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
 for h in horas_frases:
     schedule.every().day.at(h).do(enviar_frase_cada_2h)
 
-# Imágenes fijas en los horarios solicitados
 schedule.every().day.at("14:30").do(enviar_imagen_vip)
 schedule.every().day.at("18:30").do(enviar_imagen_vip)
 
-# Servidor para mantener el Bot activo en Render
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     with socketserver.TCPServer(("", port), http.server.SimpleHTTPRequestHandler) as httpd:
         httpd.serve_forever()
-
-Thread(target=run_server, daemon=True).start()
-
-# ==========================================
-# 5. LIMPIEZA DE BASURA Y BIENVENIDA
-# ==========================================
-@bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
-def limpiar_y_bienvenida(m):
-    # Borrar el mensaje de sistema "X se unió" o "X salió"
-    try: 
-        bot.delete_message(m.chat.id, m.message_id)
-    except: 
-        pass
-    
-    # Si es un nuevo usuario, darle la bienvenida con el sistema
-    if m.content_type == 'new_chat_members':
-        for u in m.new_chat_members:
-            if not u.is_bot:
-                saludo = f"¡Hola {u.first_name}! 👋 Bienvenido al equipo.\n\n{TEXTO_SISTEMA_VIP}"
-                bot.send_message(m.chat.id, saludo, parse_mode="Markdown", reply_markup=botones_vip())
 
 def scheduler_loop():
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-Thread(target=scheduler_loop, daemon=True).start()
+# ==========================================
+# 5. LIMPIEZA DE BASURA Y BIENVENIDA
+# ==========================================
+@bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
+def limpiar_y_bienvenida(m):
+    try: bot.delete_message(m.chat.id, m.message_id)
+    except: pass
+    if m.content_type == 'new_chat_members':
+        for u in m.new_chat_members:
+            if not u.is_bot:
+                saludo = f"¡Hola {u.first_name}! 👋 Bienvenido.\n\n{TEXTO_SISTEMA_VIP}"
+                bot.send_message(m.chat.id, saludo, parse_mode="Markdown", reply_markup=botones_vip())
 
-# Iniciar el bot eliminando cualquier comando pendiente
-bot.delete_webhook(drop_pending_updates=True)
-print("Bot Nabil Inversiones iniciado correctamente...")
-bot.infinity_polling()
+# ==========================================
+# 6. INICIO AGRESIVO (CORRECCIÓN ERROR 409)
+# ==========================================
+if __name__ == "__main__":
+    Thread(target=run_server, daemon=True).start()
+    Thread(target=scheduler_loop, daemon=True).start()
+    
+    bot.remove_webhook()
+    time.sleep(2)
+    
+    print("🚀 Sistema Nabil Inversiones ONLINE.")
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
