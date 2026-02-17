@@ -10,9 +10,9 @@ from datetime import datetime
 from threading import Thread
 
 # ==========================================
-# 1. CONFIGURACIÓN
+# 1. CONFIGURACIÓN (CON NUEVO TOKEN)
 # ==========================================
-TOKEN = "8375170883:AAGUhVAyyu1lvnx42RscIEuw9opknbKIBX8"
+TOKEN = "8375170883:AAENmuazrIvCV76ohEyV9VnzaIAwtR6nhJ4"
 GRUPO_ID = -1003716695186
 ADMIN_ID = 212466214
 ZONA_HORARIA = 'Europe/Madrid'
@@ -149,9 +149,8 @@ def enviar_p_senal():
     try:
         carpeta = "imagenes"
         if not os.path.exists(carpeta): 
-            print("❌ La carpeta 'imagenes' no existe en el repositorio.")
+            print("❌ Carpeta imagenes no encontrada.")
             return
-            
         fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
         
         enviadas = []
@@ -170,14 +169,14 @@ def enviar_p_senal():
             with open(ruta, 'rb') as p:
                 bot.send_photo(GRUPO_ID, p, caption=txt, parse_mode="Markdown")
             with open(FILE_ENVIADAS, "a") as f: f.write(foto + "\n")
-            print(f"✅ Foto enviada: {foto}")
+            print(f"✅ Foto enviada correctamente")
     except Exception as e: print(f"Error señal: {e}")
 
 def enviar_p_frase():
     try:
         frase = random.choice(frases_motivadoras)
         bot.send_message(GRUPO_ID, f"✨ *MENSAJE DEL DÍA - ACCIONES VIP*\n\n{frase}\n\n💪 ¡Vamos con todo equipo!", parse_mode="Markdown")
-        print("✅ Frase enviada")
+        print("✅ Frase enviada correctamente")
     except Exception as e: print(f"Error frase: {e}")
 
 # ==========================================
@@ -196,7 +195,7 @@ def limpiar_y_saludar(m):
                 except: pass
 
 # ==========================================
-# 6. PROGRAMACIÓN HORARIOS (MADRID)
+# 6. HORARIOS
 # ==========================================
 schedule.every().day.at("09:00").do(enviar_p_frase)
 schedule.every().day.at("14:30").do(enviar_p_senal)
@@ -208,7 +207,7 @@ def test_all(m):
     if m.from_user.id == ADMIN_ID:
         enviar_p_frase()
         enviar_p_senal()
-        bot.reply_to(m, "✅ Test de Acciones Vip enviado al grupo.")
+        bot.reply_to(m, "✅ Test de Acciones Vip enviado.")
 
 def scheduler_loop():
     while True:
@@ -216,5 +215,5 @@ def scheduler_loop():
         time.sleep(30)
 
 Thread(target=scheduler_loop, daemon=True).start()
-print("🚀 BOT ACCIONES VIP INICIADO CORRECTAMENTE")
+print("🚀 BOT CON NUEVO TOKEN INICIADO")
 bot.infinity_polling()
