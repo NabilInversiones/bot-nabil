@@ -10,9 +10,9 @@ from datetime import datetime
 from threading import Thread
 
 # ==========================================
-# 1. CONFIGURACIÓN
+# 1. CONFIGURACIÓN (TOKEN NUEVO Y IDs)
 # ==========================================
-TOKEN = "8375170883:AAENmuazrIvCV76ohEyV9VnzaIAwtR6nhJ4"
+TOKEN = "8375170883:AAEo82_IKNHs9jBErXUhA2BUyH0pMkxV04E"
 GRUPO_ID = -1003716695186
 ADMIN_ID = 212466214
 ZONA_HORARIA = 'Europe/Madrid'
@@ -23,25 +23,25 @@ FILE_ENVIADAS = "enviadas.txt"
 FILE_FRASES_VISTAS = "frases_vistas.txt"
 
 # ==========================================
-# 2. SISTEMA PARA QUE RENDER NO SE APAGUE
+# 2. SERVIDOR PARA RENDER (PUERTO 10000)
 # ==========================================
 def run_dummy_server():
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(b"Bot Nabil Pro Acciones VIP Online")
+            self.wfile.write(b"Bot Nabil Pro Online")
     
-    port = int(os.environ.get("PORT", 8080))
+    # Render usa el puerto 10000 por defecto
+    port = int(os.environ.get("PORT", 10000))
     with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"Servidor de mantenimiento activo en puerto {port}")
+        print(f"🌍 Servidor activo en puerto {port}")
         httpd.serve_forever()
 
-# Iniciar servidor en segundo plano
 Thread(target=run_dummy_server, daemon=True).start()
 
 # ==========================================
-# 3. LAS 100 FRASES (SIN REPETICIÓN)
+# 3. LISTA DE 100 FRASES (SIN REPETICIÓN)
 # ==========================================
 frases_motivadoras = [
     "🚀 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -147,7 +147,7 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 4. FUNCIONES DE ENVÍO
+# 4. FUNCIONES DE ENVÍO Y FIJADO
 # ==========================================
 def enviar_p_senal():
     try:
@@ -189,7 +189,7 @@ def enviar_p_frase():
     except Exception as e: print(f"Error frase: {e}")
 
 # ==========================================
-# 5. PLANIFICADOR (HORARIOS)
+# 5. HORARIOS (10 FRASES + 2 SEÑALES)
 # ==========================================
 horas_frases = ["08:30", "10:00", "11:30", "13:00", "15:30", "17:00", "19:30", "20:30", "22:00", "23:00"]
 for h in horas_frases:
@@ -199,25 +199,22 @@ schedule.every().day.at("14:30").do(enviar_p_senal)
 schedule.every().day.at("18:30").do(enviar_p_senal)
 
 # ==========================================
-# 6. COMANDOS Y EVENTOS
+# 6. COMANDOS (TEST, LINK, REGISTRO)
 # ==========================================
 @bot.message_handler(commands=['test'])
-def test_command(m):
-    # Solo tú puedes activar el test
+def test_all(m):
     if m.from_user.id == ADMIN_ID:
         enviar_p_frase()
-        bot.reply_to(m, "✅ Test ejecutado: He enviado una frase al grupo y la he fijado.")
-    else:
-        bot.reply_to(m, "❌ No tienes permiso para usar este comando.")
+        bot.reply_to(m, "✅ BOT NABIL ACTIVO. Frase enviada y fijada en el grupo.")
 
 @bot.message_handler(commands=['link'])
 def link_command(m):
-    txt = "🔗 *ENLACE OFICIAL ACCIONES VIP:*\n\nAccede aquí para empezar: [PRACTICA_AQUÍ]\n\nCualquier duda, contacta con @nabil 🚀"
+    txt = "🔗 *ACCESO OFICIAL ACCIONES VIP:*\n\nPulsa aquí para entrar: [TU_LINK_AQUÍ]\n\n¡Te esperamos dentro! 🚀"
     bot.send_message(m.chat.id, txt, parse_mode="Markdown")
 
 @bot.message_handler(commands=['registro'])
 def registro_command(m):
-    txt = "📝 *GUÍA DE REGISTRO:*\n\n1️⃣ Entra en nuestro enlace oficial.\n2️⃣ Regístrate con tus datos reales.\n3️⃣ Envía captura a @nabil para entrar al canal Premium. 📈"
+    txt = "📝 *PASOS PARA TU REGISTRO:*\n\n1. Regístrate en el enlace oficial.\n2. Completa tu perfil.\n3. Habla con @nabil para activar tu cuenta VIP. 📈"
     bot.send_message(m.chat.id, txt, parse_mode="Markdown")
 
 @bot.message_handler(content_types=['new_chat_members'])
@@ -239,5 +236,5 @@ def scheduler_loop():
 
 Thread(target=scheduler_loop, daemon=True).start()
 
-print("🚀 BOT NABIL PRO ONLINE - SIN INTERRUPCIONES")
-bot.infinity_polling(timeout=10, long_polling_timeout=5)
+print("🚀 BOT NABIL PRO TOTALMENTE ACTUALIZADO")
+bot.infinity_polling(timeout=20, long_polling_timeout=10)
