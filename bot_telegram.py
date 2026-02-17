@@ -4,99 +4,217 @@ import time
 import pytz
 import http.server
 import socketserver
+import random
+import os
 from datetime import datetime
 from threading import Thread
 
 # ==========================================
-# 1. CONFIGURACIÓN (Tus datos)
+# 1. CONFIGURACIÓN
 # ==========================================
 TOKEN = "8375170883:AAGUhVAyyu1lvnx42RscIEuw9opknbKIBX8"
-GRUPO_ID = -1003716695186  # ID de tu grupo
-ADMIN_ID = 212466214       # Tu ID personal
+GRUPO_ID = -1003716695186
+ADMIN_ID = 212466214
 ZONA_HORARIA = 'Europe/Madrid'
 
 bot = telebot.TeleBot(TOKEN)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
+FILE_ENVIADAS = "enviadas.txt"
 
 # ==========================================
-# 2. TRUCO PARA RENDER (SERVIDOR WEB)
+# 2. LAS 100 FRASES (LISTA COMPLETA)
 # ==========================================
-# Esto evita el error de "Timed Out" y mantiene el bot vivo
+frases_motivadoras = [
+    "🚀 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
+    "📈 Opera con el plan, no con la emoción. ¡Disciplina ante todo!",
+    "💰 No busques el dinero, busca la habilidad y el dinero te seguirá.",
+    "🔥 Los ganadores no son los que nunca fallan, sino los que nunca se rinden.",
+    "📊 Gestiona tu riesgo. Perder una batalla no es perder la guerra.",
+    "🌟 La paciencia es la clave del éxito en el trading.",
+    "📉 Un mal día de trading no define tu carrera. ¡Sigue adelante!",
+    "💸 Tu mente es tu activo más valioso. Entrénala bien.",
+    "🏆 La constancia separa a los amateurs de los profesionales.",
+    "💡 Aprende de tus errores y nunca dejarás de ganar.",
+    "🚀 El mercado no te quita el dinero, se lo das tú por falta de disciplina.",
+    "📈 Haz del trading un negocio, no un juego de azar.",
+    "💰 La libertad financiera comienza con una decisión hoy.",
+    "🔥 No cuentes los días, haz que los días cuenten.",
+    "📊 El mejor indicador técnico es tu propia psicología.",
+    "🌟 Sé humilde cuando ganes y resiliente cuando pierdas.",
+    "📉 El trading es 10% técnica y 90% mentalidad.",
+    "💸 Tu único competidor es la persona que fuiste ayer.",
+    "🏆 El éxito llega para quienes trabajan mientras otros descansan.",
+    "💡 No operes por necesidad, opera por oportunidad.",
+    "🚀 La disciplina es hacer lo que debes, incluso cuando no quieres.",
+    "📈 El trading es el camino más difícil para hacer dinero fácil.",
+    "💰 Protege tu capital como si fuera tu vida.",
+    "🔥 El miedo y la codicia son los enemigos del trader.",
+    "📊 Los gráficos no mienten, las emociones sí.",
+    "🌟 El éxito no es el destino, es el proceso.",
+    "📉 Si no puedes controlar tus emociones, no puedes controlar tu dinero.",
+    "💸 El mercado es una transferencia de dinero de los impacientes a los pacientes.",
+    "🏆 La mejor inversión que puedes hacer es en ti mismo.",
+    "💡 Simplifica tu estrategia. Menos es más.",
+    "🚀 La confianza viene de la preparación.",
+    "📈 No persigas el precio, deja que el precio venga a ti.",
+    "💰 Una pérdida es una lección pagada.",
+    "🔥 Mantén tu mente fría y tu corazón enfocado.",
+    "📊 Opera lo que ves, no lo que piensas.",
+    "🌟 El trading profesional es aburrido, el trading emocional es caro.",
+    "📉 No intentes predecir, intenta reaccionar.",
+    "💸 Ganar es genial, pero sobrevivir es vital.",
+    "🏆 Sé un maestro de una estrategia, no un aprendiz de cien.",
+    "💡 El trading es libertad, pero requiere responsabilidad.",
+    "🚀 Visualiza tu éxito y trabaja por él.",
+    "📈 Cada vela tiene una historia, aprende a leerla.",
+    "💰 Riqueza rápida desaparece rápido. Construye con base.",
+    "🔥 Tu plan de trading es tu mapa en la tormenta.",
+    "📊 No hay atajos para la maestría.",
+    "🌟 Acepta el riesgo o no operes.",
+    "📉 El ego es el asesino de cuentas más grande.",
+    "💸 Trata el trading como una profesión y te pagará como tal.",
+    "🏆 Rendirse no es una opción.",
+    "💡 La calidad de tus entradas define la calidad de tu vida.",
+    "🚀 Cree en ti mismo cuando nadie más lo haga.",
+    "📈 El volumen confirma, el precio manda.",
+    "💰 No arriesgues más de lo que puedes permitirte perder.",
+    "🔥 La consistencia es el resultado de la disciplina.",
+    "📊 El análisis técnico es un mapa, no una bola de cristal.",
+    "🌟 Mantente enfocado en el largo plazo.",
+    "📉 Corta tus pérdidas y deja correr tus ganancias.",
+    "💸 El conocimiento es poder, pero la acción es resultados.",
+    "🏆 Los sueños no se cumplen, se trabajan.",
+    "💡 Sé agresivo con tus metas y paciente con tus trades.",
+    "🚀 Un ganador es un perdedor que lo intentó una vez más.",
+    "📈 El mercado siempre tiene la razón.",
+    "💰 La riqueza mental precede a la riqueza material.",
+    "🔥 Domina tus demonios internos antes de dominar el mercado.",
+    "📊 La suerte no existe en el trading, existe la probabilidad.",
+    "🌟 Hazlo hoy, mañana podría ser tarde.",
+    "📉 Una cuenta pequeña se cuida igual que una grande.",
+    "💸 No trabajes por dinero, haz que el dinero trabaje por ti.",
+    "🏆 El trading es libertad de tiempo, no solo de dinero.",
+    "💡 Tu disciplina determinará tu destino.",
+    "🚀 El camino al éxito está en construcción permanente.",
+    "📈 Analiza, opera, aprende y repite.",
+    "💰 Tu cuenta bancaria refleja tu nivel de disciplina.",
+    "🔥 No te compares con otros, compárate con tu ayer.",
+    "📊 El mercado es un maestro cruel pero justo.",
+    "🌟 La excelencia no es un acto, es un hábito.",
+    "📉 Piensa en grande, opera con inteligencia.",
+    "💸 Invierte en conocimiento y nunca serás pobre.",
+    "🏆 Solo fallas cuando dejas de intentar.",
+    "💡 Mantén tu estrategia simple y tu ejecución perfecta.",
+    "🚀 El éxito requiere sacrificio.",
+    "📈 Escucha lo que el mercado te dice, no lo que quieres oír.",
+    "💰 Cada operación es una nueva oportunidad.",
+    "🔥 Controla el riesgo y el beneficio vendrá solo.",
+    "📊 Sé un francotirador, no un ametrallador.",
+    "🌟 La perseverancia vence a la inteligencia.",
+    "📉 No te enamores de una operación.",
+    "💸 Aprender a no operar es tan importante como operar.",
+    "🏆 Los campeones se hacen en los días difíciles.",
+    "💡 El trading es un maratón, no un sprint.",
+    "🚀 Tu futuro depende de lo que hagas hoy.",
+    "📈 Los retrocesos son oportunidades disfrazadas.",
+    "💰 La gratitud atrae la abundancia.",
+    "🔥 No dejes que un trade defina tu felicidad.",
+    "📊 Lee libros, estudia gráficos, mejora siempre.",
+    "🌟 La disciplina es el puente entre metas y logros.",
+    "📉 Deja de buscar el santo grial y busca tu disciplina.",
+    "💸 El trading te enseña quién eres realmente.",
+    "🏆 El éxito es inevitable si no te rindes.",
+    "💡 ¡Vamos equipo, hoy es un gran día para ganar!"
+]
+
+# ==========================================
+# 3. SERVIDOR ANTI-SUEÑO
+# ==========================================
 def run_dummy_server():
     class Handler(http.server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(b"Bot esta vivo!")
-
+            self.wfile.write(b"Bot Nabil Pro Acciones VIP Online")
     port = 8080
     with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"Servidor de mantenimiento activo en puerto {port}")
         httpd.serve_forever()
 
-# Iniciamos el servidor en un hilo aparte
 Thread(target=run_dummy_server, daemon=True).start()
 
 # ==========================================
-# 3. CONTENIDO Y LÓGICA
+# 4. FUNCIONES DE ENVÍO
 # ==========================================
-frases = [
-    "🚀 *¡Buenos días equipo!* El éxito no es suerte, es constancia. ¿Ya revisaste tus metas de hoy?",
-    "📈 *Recordatorio:* El mercado recompensa la paciencia y castiga la impulsividad. ¡Mantente frío!",
-    "💰 *Mentalidad de riqueza:* No trabajes por el dinero, haz que el dinero trabaje para ti.",
-    "🔥 *Motivación:* Los límites solo están en tu mente. ¡A por todas!",
-    "💎 *Tip del día:* La disciplina es hacer lo que debes, incluso cuando no tienes ganas.",
-    "📊 *Análisis:* Antes de entrar en una operación, revisa tu gestión de riesgo. ¡Protege tu capital!"
-]
-
-def enviar_mensaje_programado():
+def enviar_p_senal():
     try:
-        ahora = datetime.now(madrid_tz)
-        # Seleccionamos una frase según la hora para que no se repita igual siempre
-        indice = ahora.hour % len(frases)
-        mensaje = frases[indice]
+        carpeta = "imagenes"
+        if not os.path.exists(carpeta): 
+            print("❌ La carpeta 'imagenes' no existe en el repositorio.")
+            return
+            
+        fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
         
-        bot.send_message(GRUPO_ID, mensaje, parse_mode="Markdown")
-        print(f"✅ Mensaje enviado a las {ahora.strftime('%H:%M:%S')}")
-    except Exception as e:
-        print(f"❌ Error al enviar mensaje: {e}")
+        enviadas = []
+        if os.path.exists(FILE_ENVIADAS):
+            with open(FILE_ENVIADAS, "r") as f: enviadas = f.read().splitlines()
+
+        pendientes = [f for f in fotos if f not in enviadas]
+        if not pendientes:
+            open(FILE_ENVIADAS, "w").close()
+            pendientes = fotos
+
+        if pendientes:
+            foto = random.choice(pendientes)
+            ruta = os.path.join(carpeta, foto)
+            txt = "✅ *¡SEÑAL EXITOSA!* 🚀\n\nResultados confirmados en **Acciones Vip**. Seguimos sumando en equipo. 💰📈\n\n_Contacta con @nabil para más info._"
+            with open(ruta, 'rb') as p:
+                bot.send_photo(GRUPO_ID, p, caption=txt, parse_mode="Markdown")
+            with open(FILE_ENVIADAS, "a") as f: f.write(foto + "\n")
+            print(f"✅ Foto enviada: {foto}")
+    except Exception as e: print(f"Error señal: {e}")
+
+def enviar_p_frase():
+    try:
+        frase = random.choice(frases_motivadoras)
+        bot.send_message(GRUPO_ID, f"✨ *MENSAJE DEL DÍA - ACCIONES VIP*\n\n{frase}\n\n💪 ¡Vamos con todo equipo!", parse_mode="Markdown")
+        print("✅ Frase enviada")
+    except Exception as e: print(f"Error frase: {e}")
 
 # ==========================================
-# 4. PROGRAMACIÓN DE HORARIOS
+# 5. LIMPIADOR Y BIENVENIDA
 # ==========================================
-# Se enviará un mensaje en estas horas exactas (Hora de Madrid)
-horarios = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]
+@bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
+def limpiar_y_saludar(m):
+    try: bot.delete_message(m.chat.id, m.message_id)
+    except: pass
+    if m.new_chat_members:
+        for u in m.new_chat_members:
+            if not u.is_bot:
+                try: 
+                    bienvenida = f"¡Hola {u.first_name}! 👋 Bienvenido a la familia de **Acciones Vip**. Gracias por confiar en nosotros. Si quieres empezar a ganar dinero, contacta con @nabil 📈💰"
+                    bot.send_message(u.id, bienvenida, parse_mode="Markdown")
+                except: pass
 
-for hora in horarios:
-    schedule.every().day.at(hora).do(enviar_mensaje_programado)
-
 # ==========================================
-# 5. COMANDOS DEL BOT
+# 6. PROGRAMACIÓN HORARIOS (MADRID)
 # ==========================================
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, "¡Hola! Soy el bot de Nabil. Estoy programado para enviar contenido de valor automáticamente.")
+schedule.every().day.at("09:00").do(enviar_p_frase)
+schedule.every().day.at("14:30").do(enviar_p_senal)
+schedule.every().day.at("18:30").do(enviar_p_senal)
+schedule.every().day.at("21:00").do(enviar_p_frase)
 
 @bot.message_handler(commands=['test'])
-def test_mensaje(message):
-    if message.from_user.id == ADMIN_ID:
-        enviar_mensaje_programado()
-        bot.reply_to(message, "✅ Prueba enviada al grupo.")
-    else:
-        bot.reply_to(message, "No tienes permiso para esto.")
-
-# ==========================================
-# 6. EJECUCIÓN CONTINUA
-# ==========================================
-print("🚀 BOT INICIADO Y FUNCIONANDO EN LA NUBE")
+def test_all(m):
+    if m.from_user.id == ADMIN_ID:
+        enviar_p_frase()
+        enviar_p_senal()
+        bot.reply_to(m, "✅ Test de Acciones Vip enviado al grupo.")
 
 def scheduler_loop():
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# El hilo del scheduler corre en segundo plano
 Thread(target=scheduler_loop, daemon=True).start()
-
-# Iniciamos el bot para que responda a comandos (polling)
+print("🚀 BOT ACCIONES VIP INICIADO CORRECTAMENTE")
 bot.infinity_polling()
