@@ -10,7 +10,7 @@ from datetime import datetime
 from threading import Thread
 
 # ==========================================
-# 1. CONFIGURACIÓN (CON NUEVO TOKEN)
+# 1. CONFIGURACIÓN
 # ==========================================
 TOKEN = "8375170883:AAENmuazrIvCV76ohEyV9VnzaIAwtR6nhJ4"
 GRUPO_ID = -1003716695186
@@ -20,9 +20,10 @@ ZONA_HORARIA = 'Europe/Madrid'
 bot = telebot.TeleBot(TOKEN)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
 FILE_ENVIADAS = "enviadas.txt"
+FILE_FRASES_VISTAS = "frases_vistas.txt"
 
 # ==========================================
-# 2. LAS 100 FRASES (LISTA COMPLETA)
+# 2. LAS 100 FRASES
 # ==========================================
 frases_motivadoras = [
     "🚀 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -128,7 +129,7 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 3. SERVIDOR ANTI-SUEÑO
+# 3. FUNCIONES DE LÓGICA
 # ==========================================
 def run_dummy_server():
     class Handler(http.server.SimpleHTTPRequestHandler):
@@ -142,72 +143,86 @@ def run_dummy_server():
 
 Thread(target=run_dummy_server, daemon=True).start()
 
-# ==========================================
-# 4. FUNCIONES DE ENVÍO
-# ==========================================
 def enviar_p_senal():
     try:
-        carpeta = "imagenes"
-        if not os.path.exists(carpeta): 
-            print("❌ Carpeta imagenes no encontrada.")
-            return
-        fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+        # Desfijar todo antes de mandar lo nuevo
+        bot.unpin_all_chat_messages(GRUPO_ID)
         
+        carpeta = "imagenes"
+        fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
         enviadas = []
         if os.path.exists(FILE_ENVIADAS):
             with open(FILE_ENVIADAS, "r") as f: enviadas = f.read().splitlines()
-
+        
         pendientes = [f for f in fotos if f not in enviadas]
         if not pendientes:
             open(FILE_ENVIADAS, "w").close()
             pendientes = fotos
-
-        if pendientes:
-            foto = random.choice(pendientes)
-            ruta = os.path.join(carpeta, foto)
-            txt = "✅ *¡SEÑAL EXITOSA!* 🚀\n\nResultados confirmados en **Acciones Vip**. Seguimos sumando en equipo. 💰📈\n\n_Contacta con @nabil para más info._"
-            with open(ruta, 'rb') as p:
-                bot.send_photo(GRUPO_ID, p, caption=txt, parse_mode="Markdown")
-            with open(FILE_ENVIADAS, "a") as f: f.write(foto + "\n")
-            print(f"✅ Foto enviada correctamente")
+        
+        foto = random.choice(pendientes)
+        ruta = os.path.join(carpeta, foto)
+        txt = "✅ *¡SEÑAL EXITOSA!* 🚀\n\nResultados confirmados en **Acciones Vip**. Seguimos sumando en equipo. 💰📈\n\n_Contacta con @nabil para más info._"
+        
+        with open(ruta, 'rb') as p:
+            msg = bot.send_photo(GRUPO_ID, p, caption=txt, parse_mode="Markdown")
+            # Fijar el nuevo mensaje
+            bot.pin_chat_message(GRUPO_ID, msg.message_id)
+            
+        with open(FILE_ENVIADAS, "a") as f: f.write(foto + "\n")
     except Exception as e: print(f"Error señal: {e}")
 
 def enviar_p_frase():
     try:
-        frase = random.choice(frases_motivadoras)
-        bot.send_message(GRUPO_ID, f"✨ *MENSAJE DEL DÍA - ACCIONES VIP*\n\n{frase}\n\n💪 ¡Vamos con todo equipo!", parse_mode="Markdown")
-        print("✅ Frase enviada correctamente")
+        # Desfijar todo antes de mandar lo nuevo
+        bot.unpin_all_chat_messages(GRUPO_ID)
+        
+        vistas = []
+        if os.path.exists(FILE_FRASES_VISTAS):
+            with open(FILE_FRASES_VISTAS, "r") as f: vistas = f.read().splitlines()
+        
+        disponibles = [fr for fr in frases_motivadoras if fr not in vistas]
+        if not disponibles:
+            open(FILE_FRASES_VISTAS, "w").close()
+            disponibles = frases_motivadoras
+        
+        frase = random.choice(disponibles)
+        msg = bot.send_message(GRUPO_ID, f"✨ *MENSAJE DEL DÍA - ACCIONES VIP*\n\n{frase}\n\n💪 ¡Vamos con todo equipo!", parse_mode="Markdown")
+        
+        # Fijar el nuevo mensaje
+        bot.pin_chat_message(GRUPO_ID, msg.message_id)
+        
+        with open(FILE_FRASES_VISTAS, "a") as f: f.write(frase + "\n")
     except Exception as e: print(f"Error frase: {e}")
 
 # ==========================================
-# 5. LIMPIADOR Y BIENVENIDA
+# 4. HORARIOS (10 FRASES + 2 FOTOS)
 # ==========================================
-@bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
-def limpiar_y_saludar(m):
-    try: bot.delete_message(m.chat.id, m.message_id)
-    except: pass
-    if m.new_chat_members:
-        for u in m.new_chat_members:
-            if not u.is_bot:
-                try: 
-                    bienvenida = f"¡Hola {u.first_name}! 👋 Bienvenido a la familia de **Acciones Vip**. Gracias por confiar en nosotros. Si quieres empezar a ganar dinero, contacta con @nabil 📈💰"
-                    bot.send_message(u.id, bienvenida, parse_mode="Markdown")
-                except: pass
+horas_frases = ["08:30", "10:00", "11:30", "13:00", "15:30", "17:00", "19:30", "20:30", "22:00", "23:00"]
+for h in horas_frases:
+    schedule.every().day.at(h).do(enviar_p_frase)
 
-# ==========================================
-# 6. HORARIOS
-# ==========================================
-schedule.every().day.at("09:00").do(enviar_p_frase)
 schedule.every().day.at("14:30").do(enviar_p_senal)
 schedule.every().day.at("18:30").do(enviar_p_senal)
-schedule.every().day.at("21:00").do(enviar_p_frase)
 
+# ==========================================
+# 5. COMANDOS Y BIENVENIDA
+# ==========================================
 @bot.message_handler(commands=['test'])
 def test_all(m):
     if m.from_user.id == ADMIN_ID:
         enviar_p_frase()
+        time.sleep(2) # Pausa para ver el efecto
         enviar_p_senal()
-        bot.reply_to(m, "✅ Test de Acciones Vip enviado.")
+        bot.reply_to(m, "✅ Test enviado. El último mensaje (la foto) se ha quedado fijado.")
+
+@bot.message_handler(content_types=['new_chat_members'])
+def saludar(m):
+    try: bot.delete_message(m.chat.id, m.message_id)
+    except: pass
+    for u in m.new_chat_members:
+        if not u.is_bot:
+            try: bot.send_message(u.id, f"¡Hola {u.first_name}! 👋 Bienvenido a **Acciones Vip**. Si quieres ganar dinero con nosotros, contacta con @nabil 📈💰", parse_mode="Markdown")
+            except: pass
 
 def scheduler_loop():
     while True:
@@ -215,5 +230,5 @@ def scheduler_loop():
         time.sleep(30)
 
 Thread(target=scheduler_loop, daemon=True).start()
-print("🚀 BOT CON NUEVO TOKEN INICIADO")
+print("🚀 BOT NABIL PRO ACTUALIZADO CON FIJADO AUTOMÁTICO")
 bot.infinity_polling()
