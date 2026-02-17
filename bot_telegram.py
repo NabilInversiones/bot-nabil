@@ -30,26 +30,19 @@ TEXTO_SISTEMA_VIP = (
     "💰 *PARA GANAR DINERO DEBES REGISTRARTE Y CONTACTAR CON NABIL*"
 )
 
-# FUNCIÓN DE BOTONES CON TU ENLACE DE QVSE Y CONTACTO DOBLE
+# FUNCIÓN DE BOTONES
 def botones_vip():
     markup = InlineKeyboardMarkup()
-    
-    # Botón de Registro con tu enlace de invitación
     enlace_qvse = "https://qvselp.com/#/pages/auth-signup/index?inviteCode=3LVZ"
     btn_registro = InlineKeyboardButton("🚀 REGISTRO EN QVSE", url=enlace_qvse)
-    
-    # Opción 1: Ganar dinero (Mensaje precargado)
     btn_ganar = InlineKeyboardButton("💰 GANAR DINERO", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20empezar%20a%20ganar%20dinero")
-    
-    # Opción 2: Información (Mensaje precargado)
     btn_info = InlineKeyboardButton("ℹ️ INFORMACIÓN", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20informacion")
-    
     markup.add(btn_registro)
     markup.add(btn_ganar, btn_info) 
     return markup
 
 # ==========================================
-# 2. FRASES MOTIVADORAS (LAS 100)
+# 2. LAS 100 FRASES MOTIVADORAS (ÍNTEGRAS)
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -157,7 +150,6 @@ frases_motivadoras = [
 # ==========================================
 # 3. FUNCIONES DE ENVÍO Y ANCLADO
 # ==========================================
-
 def refrescar_fijado(nuevo_mensaje):
     try:
         bot.unpin_all_chat_messages(GRUPO_ID)
@@ -187,19 +179,16 @@ def enviar_imagen_vip():
 # ==========================================
 # 4. COMANDO MANUAL /LINK
 # ==========================================
-
 @bot.message_handler(commands=['link'])
 def comando_link(m):
     if m.from_user.id == ADMIN_ID:
-        bot.reply_to(m, "🔗 Enviando sistema con enlace QVSE al grupo...")
         enviar_imagen_vip()
     else:
-        bot.reply_to(m, "❌ No tienes permiso para usar este comando.")
+        bot.reply_to(m, "❌ No tienes permiso.")
 
 # ==========================================
-# 5. HORARIOS Y SERVIDOR
+# 5. LÓGICA DE HORARIOS Y SERVIDOR
 # ==========================================
-
 horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
 for h in horas_frases:
     schedule.every().day.at(h).do(enviar_frase_cada_2h)
@@ -228,12 +217,23 @@ def limpiar_y_bienvenida(m):
                 bot.send_message(m.chat.id, saludo, parse_mode="Markdown", reply_markup=botones_vip())
 
 # ==========================================
-# 6. INICIO AGRESIVO
+# 6. INICIO SUPER AGRESIVO (EVITAR ERROR 409)
 # ==========================================
 if __name__ == "__main__":
     Thread(target=run_server, daemon=True).start()
     Thread(target=scheduler_loop, daemon=True).start()
+    
+    # Cerramos cualquier conexión previa
     bot.remove_webhook()
-    time.sleep(2)
-    print("🚀 Bot Nabil listo. Usa /link en el privado.")
-    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    print("⏳ Limpiando sesiones antiguas...")
+    time.sleep(5) # Pausa larga para que Telegram libere el TOKEN
+    
+    print("🚀 BOT NABIL INVERSIONES ONLINE 100%")
+    
+    # Polling con reinicio automático si falla
+    while True:
+        try:
+            bot.polling(none_stop=True, interval=0, timeout=20)
+        except Exception as e:
+            print(f"Error detectado: {e}. Reiniciando en 5s...")
+            time.sleep(5)
