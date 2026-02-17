@@ -10,7 +10,7 @@ from datetime import datetime
 from threading import Thread
 
 # ==========================================
-# 1. CONFIGURACIÓN (TOKEN NUEVO Y IDs)
+# 1. CONFIGURACIÓN PRINCIPAL
 # ==========================================
 TOKEN = "8375170883:AAEo82_IKNHs9jBErXUhA2BUyH0pMkxV04E"
 GRUPO_ID = -1003716695186
@@ -19,29 +19,19 @@ ZONA_HORARIA = 'Europe/Madrid'
 
 bot = telebot.TeleBot(TOKEN)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
-FILE_ENVIADAS = "enviadas.txt"
-FILE_FRASES_VISTAS = "frases_vistas.txt"
+
+# TU TEXTO DE INVERSIÓN FIJO
+TEXTO_INVERSION = (
+    "🏆 *SISTEMA NABIL INVERSIONES*\n\n"
+    "✅ *Tasa de éxito:* 100% Garantizado.\n"
+    "✅ *Mercado:* Acciones de Empresas (Seguridad Total).\n"
+    "✅ *Capital:* Protegido y respaldado.\n\n"
+    "💰 *PARA GANAR DINERO DEBES CONTACTAR CON* @nabil\n\n"
+    "🚀 Pulsa el botón de abajo para activar tu cuenta ahora mismo."
+)
 
 # ==========================================
-# 2. SERVIDOR PARA RENDER (PUERTO 10000)
-# ==========================================
-def run_dummy_server():
-    class Handler(http.server.SimpleHTTPRequestHandler):
-        def do_GET(self):
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"Bot Nabil Pro Online")
-    
-    # Render usa el puerto 10000 por defecto
-    port = int(os.environ.get("PORT", 10000))
-    with socketserver.TCPServer(("", port), Handler) as httpd:
-        print(f"🌍 Servidor activo en puerto {port}")
-        httpd.serve_forever()
-
-Thread(target=run_dummy_server, daemon=True).start()
-
-# ==========================================
-# 3. LISTA DE 100 FRASES (SIN REPETICIÓN)
+# 2. LAS 100 FRASES MOTIVADORAS (TODAS)
 # ==========================================
 frases_motivadoras = [
     "🚀 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -147,87 +137,84 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 4. FUNCIONES DE ENVÍO Y FIJADO
+# 3. SERVIDOR RENDER (ANTI-APAGADO)
 # ==========================================
-def enviar_p_senal():
+def run_dummy_server():
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot Nabil Pro Full Online")
+    port = int(os.environ.get("PORT", 10000))
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        httpd.serve_forever()
+
+Thread(target=run_dummy_server, daemon=True).start()
+
+# ==========================================
+# 4. LÓGICA DE FIJADO Y ENVÍO
+# ==========================================
+def refrescar_fijado(mensaje_obj):
     try:
         bot.unpin_all_chat_messages(GRUPO_ID)
+        bot.pin_chat_message(GRUPO_ID, mensaje_obj.message_id)
+    except:
+        pass
+
+def tarea_automatica():
+    try:
+        frase = random.choice(frases_motivadoras)
+        texto_completo = f"✨ *MENSAJE DEL DÍA*\n\n{frase}\n\n---\n{TEXTO_INVERSION}"
+        
         carpeta = "imagenes"
-        if not os.path.exists(carpeta): os.makedirs(carpeta)
-        fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
-        if not fotos: return
-        enviadas = []
-        if os.path.exists(FILE_ENVIADAS):
-            with open(FILE_ENVIADAS, "r") as f: enviadas = f.read().splitlines()
-        pendientes = [f for f in fotos if f not in enviadas]
-        if not pendientes:
-            open(FILE_ENVIADAS, "w").close()
-            pendientes = fotos
-        foto = random.choice(pendientes)
-        ruta = os.path.join(carpeta, foto)
-        txt = "✅ *¡SEÑAL EXITOSA!* 🚀\n\nResultados confirmados en **Acciones Vip**. Seguimos sumando en equipo. 💰📈\n\n_Contacta con @nabil para más info._"
-        with open(ruta, 'rb') as p:
-            msg = bot.send_photo(GRUPO_ID, p, caption=txt, parse_mode="Markdown")
-            bot.pin_chat_message(GRUPO_ID, msg.message_id)
-        with open(FILE_ENVIADAS, "a") as f: f.write(foto + "\n")
-    except Exception as e: print(f"Error señal: {e}")
+        if os.path.exists(carpeta):
+            fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+            if fotos:
+                foto = random.choice(fotos)
+                with open(os.path.join(carpeta, foto), 'rb') as p:
+                    msg = bot.send_photo(GRUPO_ID, p, caption=texto_completo, parse_mode="Markdown")
+                    refrescar_fijado(msg)
+                    return
 
-def enviar_p_frase():
-    try:
-        bot.unpin_all_chat_messages(GRUPO_ID)
-        vistas = []
-        if os.path.exists(FILE_FRASES_VISTAS):
-            with open(FILE_FRASES_VISTAS, "r") as f: vistas = f.read().splitlines()
-        disponibles = [fr for fr in frases_motivadoras if fr not in vistas]
-        if not disponibles:
-            open(FILE_FRASES_VISTAS, "w").close()
-            disponibles = frases_motivadoras
-        frase = random.choice(disponibles)
-        msg = bot.send_message(GRUPO_ID, f"✨ *MENSAJE DEL DÍA - ACCIONES VIP*\n\n{frase}\n\n💪 ¡Vamos con todo equipo!", parse_mode="Markdown")
-        bot.pin_chat_message(GRUPO_ID, msg.message_id)
-        with open(FILE_FRASES_VISTAS, "a") as f: f.write(frase + "\n")
-    except Exception as e: print(f"Error frase: {e}")
+        msg = bot.send_message(GRUPO_ID, texto_completo, parse_mode="Markdown")
+        refrescar_fijado(msg)
+    except Exception as e:
+        print(f"Error en tarea: {e}")
 
 # ==========================================
-# 5. HORARIOS (10 FRASES + 2 SEÑALES)
+# 5. HORARIOS CADA 2 HORAS
 # ==========================================
-horas_frases = ["08:30", "10:00", "11:30", "13:00", "15:30", "17:00", "19:30", "20:30", "22:00", "23:00"]
-for h in horas_frases:
-    schedule.every().day.at(h).do(enviar_p_frase)
-
-schedule.every().day.at("14:30").do(enviar_p_senal)
-schedule.every().day.at("18:30").do(enviar_p_senal)
+# 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00, 00:00
+horas = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00", "00:00"]
+for h in horas:
+    schedule.every().day.at(h).do(tarea_automatica)
 
 # ==========================================
-# 6. COMANDOS (TEST, LINK, REGISTRO)
+# 6. COMANDOS Y BIENVENIDA
 # ==========================================
 @bot.message_handler(commands=['test'])
 def test_all(m):
     if m.from_user.id == ADMIN_ID:
-        enviar_p_frase()
-        bot.reply_to(m, "✅ BOT NABIL ACTIVO. Frase enviada y fijada en el grupo.")
+        tarea_automatica()
+        bot.reply_to(m, "✅ BOT NABIL PRO: Sistema completo arrancado.")
 
-@bot.message_handler(commands=['link'])
-def link_command(m):
-    txt = "🔗 *ACCESO OFICIAL ACCIONES VIP:*\n\nPulsa aquí para entrar: [TU_LINK_AQUÍ]\n\n¡Te esperamos dentro! 🚀"
-    bot.send_message(m.chat.id, txt, parse_mode="Markdown")
-
-@bot.message_handler(commands=['registro'])
-def registro_command(m):
-    txt = "📝 *PASOS PARA TU REGISTRO:*\n\n1. Regístrate en el enlace oficial.\n2. Completa tu perfil.\n3. Habla con @nabil para activar tu cuenta VIP. 📈"
-    bot.send_message(m.chat.id, txt, parse_mode="Markdown")
+@bot.message_handler(commands=['link', 'registro'])
+def info_link(m):
+    bot.send_message(m.chat.id, TEXTO_INVERSION, parse_mode="Markdown")
 
 @bot.message_handler(content_types=['new_chat_members'])
-def bienvenida(m):
-    try: bot.delete_message(m.chat.id, m.message_id)
-    except: pass
+def bienvenida_vip(m):
+    try:
+        bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     for u in m.new_chat_members:
         if not u.is_bot:
-            try: bot.send_message(u.id, f"¡Hola {u.first_name}! 👋 Bienvenido a **Acciones Vip**. Si quieres ganar dinero con nosotros, contacta con @nabil 📈💰", parse_mode="Markdown")
-            except: pass
+            saludo = f"¡Hola {u.first_name}! 👋 Bienvenido al grupo oficial.\n\n{TEXTO_INVERSION}"
+            bot.send_message(m.chat.id, saludo, parse_mode="Markdown")
 
 # ==========================================
-# 7. BUCLE DE EJECUCIÓN
+# 7. BUCLE FINAL
 # ==========================================
 def scheduler_loop():
     while True:
@@ -236,5 +223,8 @@ def scheduler_loop():
 
 Thread(target=scheduler_loop, daemon=True).start()
 
-print("🚀 BOT NABIL PRO TOTALMENTE ACTUALIZADO")
+# Limpiar mensajes antiguos al arrancar para evitar errores 409
+bot.delete_webhook(drop_pending_updates=True)
+
+print("🚀 BOT NABIL PRO INICIADO")
 bot.infinity_polling(timeout=20, long_polling_timeout=10)
