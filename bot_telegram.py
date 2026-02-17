@@ -21,7 +21,7 @@ ZONA_HORARIA = 'Europe/Madrid'
 bot = telebot.TeleBot(TOKEN)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
 
-# TU TEXTO DE INVERSIÓN EXACTO
+# TEXTO EXACTO DEL SISTEMA NABIL
 TEXTO_SISTEMA_VIP = (
     "🏆 *SISTEMA NABIL INVERSIONES*\n\n"
     "✅ *Tasa de éxito:* 100% Garantizado.\n"
@@ -31,17 +31,25 @@ TEXTO_SISTEMA_VIP = (
     "Pulsa el botón de abajo para activar tu cuenta ahora mismo."
 )
 
-# BOTONES DE ACCIÓN
+# FUNCIÓN DE BOTONES CON LAS DOS OPCIONES DE CONTACTO
 def botones_vip():
     markup = InlineKeyboardMarkup()
-    btn_registro = InlineKeyboardButton("🚀 REGISTRO VIP", url="https://t.me/nabil")
-    btn_contacto = InlineKeyboardButton("📩 CONTACTAR CON NABIL", url="https://t.me/nabil")
+    
+    # Botón Principal de Registro
+    btn_registro = InlineKeyboardButton("🚀 REGISTRO VIP", url="https://t.me/NabilInversiones")
+    
+    # Opción 1: Ganar dinero (Mensaje precargado)
+    btn_ganar = InlineKeyboardButton("💰 GANAR DINERO", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20empezar%20a%20ganar%20dinero")
+    
+    # Opción 2: Información (Mensaje precargado)
+    btn_info = InlineKeyboardButton("ℹ️ INFORMACIÓN", url="https://t.me/NabilInversiones?text=Buenas%20Nabil,%20quiero%20informacion")
+    
     markup.add(btn_registro)
-    markup.add(btn_contacto)
+    markup.add(btn_ganar, btn_info) 
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES MOTIVADORAS (LISTA COMPLETA)
+# 2. LAS 100 FRASES MOTIVADORAS (ÍNTEGRAS)
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -147,60 +155,59 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 3. LÓGICA DE FIJADO Y ENVÍO
+# 3. LÓGICA DE ANCLAR Y DESANCLAR
 # ==========================================
 
-def gestionar_fijado(nuevo_mensaje):
-    """Desfija todo y fija el último mensaje enviado"""
+def refrescar_fijado(nuevo_mensaje):
+    """Desancla TODO del chat y ancla el último mensaje enviado"""
     try:
         bot.unpin_all_chat_messages(GRUPO_ID)
         bot.pin_chat_message(GRUPO_ID, nuevo_mensaje.message_id)
-    except:
-        pass
+    except Exception as e:
+        print(f"Error al gestionar anclado: {e}")
 
 def enviar_frase_cada_2h():
-    """Envía texto motivador + Sistema Nabil"""
+    """Envía texto motivador + el Sistema Nabil"""
     try:
         frase = random.choice(frases_motivadoras)
-        texto = f"✨ *MENSAJE DEL DÍA*\n\n_{frase}_\n\n---\n{TEXTO_SISTEMA_VIP}"
+        texto = f"✨ *{frase}*\n\n---\n{TEXTO_SISTEMA_VIP}"
         msg = bot.send_message(GRUPO_ID, texto, parse_mode="Markdown", reply_markup=botones_vip())
-        gestionar_fijado(msg)
+        refrescar_fijado(msg)
     except Exception as e:
-        print(f"Error en frase: {e}")
+        print(f"Error enviando frase: {e}")
 
 def enviar_imagen_vip():
-    """Envía imagen + Sistema Nabil a las 14:30 y 18:30"""
+    """Envía imagen de la carpeta 'imagenes' + Sistema Nabil"""
     try:
         carpeta = "imagenes"
         if os.path.exists(carpeta):
             fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
             if fotos:
                 foto = random.choice(fotos)
-                ruta = os.path.join(carpeta, foto)
-                with open(ruta, 'rb') as p:
+                with open(os.path.join(carpeta, foto), 'rb') as p:
                     msg = bot.send_photo(
                         GRUPO_ID, p, 
-                        caption=f"📈 *RESULTADOS DEL SISTEMA*\n\n{TEXTO_SISTEMA_VIP}", 
+                        caption=f"📈 *RESULTADOS ACTUALIZADOS*\n\n{TEXTO_SISTEMA_VIP}", 
                         parse_mode="Markdown", 
                         reply_markup=botones_vip()
                     )
-                    gestionar_fijado(msg)
+                    refrescar_fijado(msg)
     except Exception as e:
-        print(f"Error en imagen: {e}")
+        print(f"Error enviando imagen: {e}")
 
 # ==========================================
-# 4. HORARIOS Y SERVIDOR
+# 4. HORARIOS (MADRID)
 # ==========================================
-
-# 10 HORARIOS DE FRASES (CADA 2 HORAS APROX)
-horas = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
-for h in horas:
+# 10 frases al día cada 2 horas aproximadamente
+horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
+for h in horas_frases:
     schedule.every().day.at(h).do(enviar_frase_cada_2h)
 
-# IMÁGENES EXACTAS
+# Imágenes fijas en los horarios solicitados
 schedule.every().day.at("14:30").do(enviar_imagen_vip)
 schedule.every().day.at("18:30").do(enviar_imagen_vip)
 
+# Servidor para mantener el Bot activo en Render
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     with socketserver.TCPServer(("", port), http.server.SimpleHTTPRequestHandler) as httpd:
@@ -213,15 +220,17 @@ Thread(target=run_server, daemon=True).start()
 # ==========================================
 @bot.message_handler(content_types=['new_chat_members', 'left_chat_member'])
 def limpiar_y_bienvenida(m):
-    # Borra "X se unió" o "X salió"
-    try: bot.delete_message(m.chat.id, m.message_id)
-    except: pass
+    # Borrar el mensaje de sistema "X se unió" o "X salió"
+    try: 
+        bot.delete_message(m.chat.id, m.message_id)
+    except: 
+        pass
     
-    # Bienvenida VIP si es un usuario nuevo
+    # Si es un nuevo usuario, darle la bienvenida con el sistema
     if m.content_type == 'new_chat_members':
         for u in m.new_chat_members:
             if not u.is_bot:
-                saludo = f"¡Hola {u.first_name}! 👋 Bienvenido al canal oficial.\n\n{TEXTO_SISTEMA_VIP}"
+                saludo = f"¡Hola {u.first_name}! 👋 Bienvenido al equipo.\n\n{TEXTO_SISTEMA_VIP}"
                 bot.send_message(m.chat.id, saludo, parse_mode="Markdown", reply_markup=botones_vip())
 
 def scheduler_loop():
@@ -230,5 +239,8 @@ def scheduler_loop():
         time.sleep(30)
 
 Thread(target=scheduler_loop, daemon=True).start()
+
+# Iniciar el bot eliminando cualquier comando pendiente
 bot.delete_webhook(drop_pending_updates=True)
+print("Bot Nabil Inversiones iniciado correctamente...")
 bot.infinity_polling()
