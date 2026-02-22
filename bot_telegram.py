@@ -38,7 +38,7 @@ def botones_vip():
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES MOTIVADORAS (TODAS)
+# 2. LAS 100 FRASES MOTIVADORAS
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -169,16 +169,14 @@ def comando_inteligente(m):
 
 @bot.message_handler(content_types=['new_chat_members'])
 def bienvenida_discreta(m):
-    # 1. Borramos el mensaje de "X se unió al grupo" inmediatamente
-    try:
-        bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    # 1. Borramos el mensaje de unirse para mantener el grupo limpio
+    try: bot.delete_message(m.chat.id, m.message_id)
+    except: pass
     
-    # 2. Le enviamos el mensaje al PRIVADO a cada usuario nuevo
+    # 2. Enviamos bienvenida al PRIVADO de cada miembro nuevo
     for user in m.new_chat_members:
         try:
-            texto_bienvenida = (
+            texto_privado = (
                 f"👋 *¡Hola {user.first_name}! Bienvenido al equipo de Nabil Inversiones.*\n\n"
                 "Para empezar a ganar dinero hoy mismo con nosotros, sigue estos pasos:\n\n"
                 "1️⃣ *REGÍSTRATE* en QVSE con el botón de abajo.\n"
@@ -186,18 +184,14 @@ def bienvenida_discreta(m):
                 "3️⃣ *ENVÍAME* captura de tu perfil para darte acceso al VIP.\n\n"
                 "¡Nos vemos dentro! 🚀📈"
             )
-            bot.send_message(user.id, texto_bienvenida, parse_mode="Markdown", reply_markup=botones_vip())
-        except:
-            # Si el usuario tiene el bot bloqueado o nunca le dio a START, no podemos escribirle
-            pass
+            bot.send_message(user.id, texto_privado, parse_mode="Markdown", reply_markup=botones_vip())
+        except: pass
 
 # ==========================================
 # 5. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
 # ==========================================
 def scheduler_loop():
-    # 10 Frases al día
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
-    # 7 Sistemas al día
     horas_sistema = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]
 
     while True:
@@ -242,5 +236,4 @@ if __name__ == "__main__":
         try:
             bot.remove_webhook()
             bot.polling(none_stop=True, interval=0, timeout=20)
-        except:
-            time.sleep(5)
+        except: time.sleep(5)
