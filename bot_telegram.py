@@ -169,11 +169,9 @@ def comando_inteligente(m):
 
 @bot.message_handler(content_types=['new_chat_members'])
 def bienvenida_discreta(m):
-    # 1. Borramos el mensaje de unirse para mantener el grupo limpio
     try: bot.delete_message(m.chat.id, m.message_id)
     except: pass
     
-    # 2. Enviamos bienvenida al PRIVADO de cada miembro nuevo
     for user in m.new_chat_members:
         try:
             texto_privado = (
@@ -188,7 +186,7 @@ def bienvenida_discreta(m):
         except: pass
 
 # ==========================================
-# 5. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
+# 5. RELOJ MAESTRO
 # ==========================================
 def scheduler_loop():
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
@@ -197,16 +195,13 @@ def scheduler_loop():
     while True:
         try:
             ahora = datetime.now(madrid_tz).strftime("%H:%M")
-            
             if ahora in horas_frases:
                 enviar_solo_frase(GRUPO_ID)
                 time.sleep(61)
-                
             if ahora in horas_sistema:
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
-            # --- SECUENCIA DE SEÑAL EN VIVO (14:30 y 18:30) ---
             if ahora == "14:30" or ahora == "18:30":
                 bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
@@ -221,7 +216,7 @@ def scheduler_loop():
         time.sleep(30)
 
 # ==========================================
-# 6. SERVIDOR WEB Y EJECUCIÓN
+# 6. SERVIDOR WEB Y EJECUCIÓN (SOLUCIÓN ERROR 409)
 # ==========================================
 def run_server():
     port = int(os.environ.get("PORT", 10000))
@@ -232,8 +227,13 @@ def run_server():
 if __name__ == "__main__":
     Thread(target=run_server, daemon=True).start()
     Thread(target=scheduler_loop, daemon=True).start()
+    
+    print("🚀 Bot activo. Limpiando conexiones...")
     while True:
         try:
-            bot.remove_webhook()
+            # Esta línea soluciona el error 409 al forzar la desconexión de otros hilos
+            bot.delete_webhook(drop_pending_updates=True)
             bot.polling(none_stop=True, interval=0, timeout=20)
-        except: time.sleep(5)
+        except Exception as e:
+            print(f"Error: {e}. Reintentando en 10s...")
+            time.sleep(10)
