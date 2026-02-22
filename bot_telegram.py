@@ -177,26 +177,24 @@ def bienvenida_grupo(m):
 # 5. RELOJ MAESTRO (10 FRASES Y SISTEMA SIN CHOQUES)
 # ==========================================
 def scheduler_loop():
-    # 10 Frases distribuidas (Horas pares e intermedias)
+    # 10 Frases distribuidas
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
-    # 7 Mensajes de Sistema (Horas impares)
+    # 7 Mensajes de Sistema
     horas_sistema = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]
 
     while True:
         try:
             ahora = datetime.now(madrid_tz).strftime("%H:%M")
             
-            # 1. Enviar Frase (10 al día)
             if ahora in horas_frases:
                 enviar_solo_frase(GRUPO_ID)
                 time.sleep(61)
                 
-            # 2. Enviar Sistema (7 al día)
             if ahora in horas_sistema:
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
-            # 3. SECUENCIA TOP DE SEÑAL (14:30 y 18:30)
+            # SECUENCIA DE SEÑAL
             if ahora == "14:30" or ahora == "18:30":
                 bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
@@ -213,7 +211,7 @@ def scheduler_loop():
         time.sleep(30)
 
 # ==========================================
-# 6. SERVIDOR Y POLLING
+# 6. INICIO DEL BOT
 # ==========================================
 def run_server():
     port = int(os.environ.get("PORT", 10000))
