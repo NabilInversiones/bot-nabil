@@ -16,7 +16,8 @@ TOKEN = "8375170883:AAEo82_IKNHs9jBErXUhA2BUyH0pMkxV04E"
 GRUPO_ID = -1003716695186
 ZONA_HORARIA = 'Europe/Madrid'
 
-bot = telebot.TeleBot(TOKEN)
+# threaded=False es vital en Render para evitar conexiones dobles (Error 409)
+bot = telebot.TeleBot(TOKEN, threaded=False)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
 
 TEXTO_SISTEMA_VIP = (
@@ -51,24 +52,17 @@ frases_motivadoras = [
     "Tu mente es tu activo más valioso. Entrénala bien.",
     "La constancia separa a los amateurs de los profesionales.",
     "Aprende de tus errores y nunca dejarás de ganar.",
-    "El mercado no te quita el dinero, se lo das tú por falta de disciplina.",
     "Haz del trading un negocio, no un juego de azar.",
     "La libertad financiera comienza con una decisión hoy.",
-    "No cuentes los días, haz que los días cuenten.",
     "El mejor indicador técnico es tu propia psicología.",
     "Sé humilde cuando ganes y resiliente cuando pierdas.",
     "El trading es 10% técnica y 90% mentalidad.",
     "Tu único competidor es la persona que fuiste ayer.",
-    "El éxito llega para quienes trabajan mientras otros descansan.",
     "No operes por necesidad, opera por oportunidad.",
     "La disciplina es hacer lo que debes, incluso cuando no quieres.",
-    "El trading es el camino más difícil para hacer dinero fácil.",
     "Protege tu capital como si fuera tu vida.",
-    "El miedo y la codicia son los enemigos del trader.",
     "Los gráficos no mienten, las emociones sí.",
-    "El éxito no es el destino, es el proceso.",
     "Si no puedes controlar tus emociones, no puedes controlar tu dinero.",
-    "El mercado es una transferencia de dinero de los impacientes a los pacientes.",
     "La mejor inversión que puedes hacer es en ti mismo.",
     "Simplifica tu estrategia. Menos es más.",
     "La confianza viene de la preparación.",
@@ -76,16 +70,11 @@ frases_motivadoras = [
     "Una pérdida es una lección pagada.",
     "Mantén tu mente fría y tu corazón enfocado.",
     "Opera lo que ves, no lo que piensas.",
-    "El trading profesional es aburrido, el trading emocional es caro.",
-    "No intentes predecir, intenta reaccionar.",
     "Ganar es genial, pero sobrevivir es vital.",
     "Sé un maestro de una estrategia, no un aprendiz de cien.",
-    "El trading es libertad, pero requiere responsabilidad.",
     "Visualiza tu éxito y trabaja por él.",
-    "Cada vela tiene una historia, aprende a leerla.",
     "Riqueza rápida desaparece rápido. Construye con base.",
     "Tu plan de trading es tu mapa en la tormenta.",
-    "No hay atajos para la maestría.",
     "Acepta el riesgo o no operes.",
     "El ego es el asesino de cuentas más grande.",
     "Trata el trading como una profesión y te pagará como tal.",
@@ -93,35 +82,27 @@ frases_motivadoras = [
     "La calidad de tus entradas define la calidad de tu vida.",
     "Cree en ti mismo cuando nadie más lo haga.",
     "El volumen confirma, el precio manda.",
-    "No arriesgues más de lo que puedes permitirte perder.",
     "La consistencia es el resultado de la disciplina.",
-    "El análisis técnico es un mapa, no una bola de cristal.",
     "Mantente enfocado en el largo plazo.",
     "Corta tus pérdidas y deja correr tus ganancias.",
     "El conocimiento es poder, pero la acción es resultados.",
     "Los sueños no se cumplen, se trabajan.",
     "Sé agresivo con tus metas y paciente con tus trades.",
-    "Un ganador es un perdedor que lo intentó una vez más.",
     "El mercado siempre tiene la razón.",
-    "La riqueza mental precede a la riqueza material.",
     "Domina tus demonios internos antes de dominar el mercado.",
     "La suerte no existe en el trading, existe la probabilidad.",
     "Hazlo hoy, mañana podría ser tarde.",
     "Una cuenta pequeña se cuida igual que una grande.",
     "No trabajes por dinero, haz que el dinero trabaje por ti.",
-    "El trading es libertad de tiempo, no solo de dinero.",
     "Tu disciplina determinará tu destino.",
-    "El camino al éxito está en construcción permanente.",
     "Analiza, opera, aprende y repite.",
     "Tu cuenta bancaria refleja tu nivel de disciplina.",
     "No te compares con otros, compárate con tu ayer.",
-    "El mercado es un maestro cruel pero justo.",
     "La excelencia no es un acto, es un hábito.",
     "Piensa en grande, opera con inteligencia.",
     "Invierte en conocimiento y nunca serás pobre.",
     "Solo fallas cuando dejas de intentar.",
     "Mantén tu estrategia simple y tu ejecución perfecta.",
-    "El éxito requiere sacrificio.",
     "Escucha lo que el mercado te dice, no lo que quieres oír.",
     "Cada operación es una nueva oportunidad.",
     "Controla el riesgo y el beneficio vendrá solo.",
@@ -137,7 +118,6 @@ frases_motivadoras = [
     "No dejes que un trade defina tu felicidad.",
     "Lee libros, estudia gráficos, mejora siempre.",
     "La disciplina es el puente entre metas y logros.",
-    "Deja de buscar el santo grial y busca tu disciplina.",
     "El trading te enseña quién eres realmente.",
     "El éxito es inevitable si no te rindes.",
     "¡Vamos equipo, hoy es un gran día para ganar!"
@@ -169,8 +149,10 @@ def comando_inteligente(m):
 
 @bot.message_handler(content_types=['new_chat_members'])
 def bienvenida_discreta(m):
-    try: bot.delete_message(m.chat.id, m.message_id)
-    except: pass
+    try:
+        bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
     
     for user in m.new_chat_members:
         try:
@@ -183,10 +165,11 @@ def bienvenida_discreta(m):
                 "¡Nos vemos dentro! 🚀📈"
             )
             bot.send_message(user.id, texto_privado, parse_mode="Markdown", reply_markup=botones_vip())
-        except: pass
+        except:
+            pass
 
 # ==========================================
-# 5. RELOJ MAESTRO
+# 5. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
 # ==========================================
 def scheduler_loop():
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
@@ -195,13 +178,16 @@ def scheduler_loop():
     while True:
         try:
             ahora = datetime.now(madrid_tz).strftime("%H:%M")
+            
             if ahora in horas_frases:
                 enviar_solo_frase(GRUPO_ID)
                 time.sleep(61)
+                
             if ahora in horas_sistema:
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
+            # SECUENCIA SEÑAL (14:30 y 18:30)
             if ahora == "14:30" or ahora == "18:30":
                 bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
@@ -212,11 +198,12 @@ def scheduler_loop():
                 bot.send_message(GRUPO_ID, "💰 *¡YA TENEMOS BENEFICIOS!* \nObjetivo cumplido. Retirando ganancias... ¡Otra victoria más! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
                 time.sleep(61)
                 
-        except: pass
+        except:
+            pass
         time.sleep(30)
 
 # ==========================================
-# 6. SERVIDOR WEB Y EJECUCIÓN (SOLUCIÓN ERROR 409)
+# 6. SERVIDOR WEB Y EJECUCIÓN (ANTI-ERROR 409)
 # ==========================================
 def run_server():
     port = int(os.environ.get("PORT", 10000))
@@ -225,15 +212,24 @@ def run_server():
         httpd.serve_forever()
 
 if __name__ == "__main__":
+    # Iniciar servidor para Render
     Thread(target=run_server, daemon=True).start()
+    # Iniciar reloj de mensajes
     Thread(target=scheduler_loop, daemon=True).start()
     
-    print("🚀 Bot activo. Limpiando conexiones...")
+    print("🚀 Sistema Nabil Inversiones ONLINE")
+    
+    # Limpieza absoluta de sesiones previas en Telegram
+    try:
+        bot.remove_webhook()
+        time.sleep(2)
+    except:
+        pass
+
     while True:
         try:
-            # Esta línea soluciona el error 409 al forzar la desconexión de otros hilos
-            bot.delete_webhook(drop_pending_updates=True)
+            # Iniciamos polling con limpieza de actualizaciones pendientes
             bot.polling(none_stop=True, interval=0, timeout=20)
         except Exception as e:
-            print(f"Error: {e}. Reintentando en 10s...")
-            time.sleep(10)
+            print(f"Conflicto o error: {e}. Reiniciando en 15s...")
+            time.sleep(15)
