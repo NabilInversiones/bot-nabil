@@ -38,7 +38,7 @@ def botones_vip():
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES (LITERALMENTE TODAS)
+# 2. LAS 100 FRASES MOTIVADORAS
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -144,49 +144,28 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 3. FUNCIONES DE ENVÍO (SISTEMA SEPARADO)
+# 3. FUNCIONES DE ENVÍO
 # ==========================================
-def enviar_frase_y_sistema_separados(chat_id):
+def enviar_solo_frase(chat_id):
     try:
-        # Enviar frase sola
         frase = random.choice(frases_motivadoras)
         bot.send_message(chat_id, f"✨ *{frase}*", parse_mode="Markdown")
-        
-        # Enviar sistema solo con botones
+    except Exception as e: print(f"Error frase: {e}")
+
+def enviar_solo_sistema(chat_id):
+    try:
         msg = bot.send_message(chat_id, TEXTO_SISTEMA_VIP, parse_mode="Markdown", reply_markup=botones_vip())
-        
-        # Anclar solo en el grupo
         if chat_id == GRUPO_ID:
             bot.unpin_all_chat_messages(GRUPO_ID)
             bot.pin_chat_message(GRUPO_ID, msg.message_id)
-    except Exception as e: print(f"Error frase: {e}")
-
-def enviar_imagen_y_sistema_separados(chat_id):
-    try:
-        carpeta = "imagenes"
-        fotos = [f for f in os.listdir(carpeta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
-        if fotos:
-            foto = random.choice(fotos)
-            with open(os.path.join(carpeta, foto), 'rb') as p:
-                # Enviar imagen sola
-                bot.send_photo(chat_id, p)
-            
-            # Enviar sistema solo con botones
-            msg = bot.send_message(chat_id, f"📈 *RESULTADOS ACTUALIZADOS*\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
-            
-            # Anclar solo en el grupo
-            if chat_id == GRUPO_ID:
-                bot.unpin_all_chat_messages(GRUPO_ID)
-                bot.pin_chat_message(GRUPO_ID, msg.message_id)
-    except Exception as e: print(f"Error imagen: {e}")
+    except Exception as e: print(f"Error sistema: {e}")
 
 # ==========================================
-# 4. COMANDOS E INTERACCIÓN
+# 4. COMANDOS
 # ==========================================
 @bot.message_handler(commands=['start', 'link'])
 def comando_inteligente(m):
-    # Responde donde le escriban (privado o grupo) sin mezclar
-    enviar_imagen_y_sistema_separados(m.chat.id)
+    enviar_solo_sistema(m.chat.id)
 
 @bot.message_handler(content_types=['new_chat_members'])
 def bienvenida_grupo(m):
@@ -195,37 +174,53 @@ def bienvenida_grupo(m):
     bot.send_message(m.chat.id, f"¡Hola! 👋 Bienvenido.\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
 
 # ==========================================
-# 5. RELOJ MAESTRO (PRESIÓN DE HORARIOS)
+# 5. RELOJ MAESTRO (10 FRASES Y SISTEMA SIN CHOQUES)
 # ==========================================
 def scheduler_loop():
-    # 10 frases al día
-    horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:00", "22:00", "23:00"]
+    # 10 Frases distribuidas (Horas pares e intermedias)
+    horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
+    # 7 Mensajes de Sistema (Horas impares)
+    horas_sistema = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]
+
     while True:
         try:
             ahora = datetime.now(madrid_tz).strftime("%H:%M")
             
-            # Frase + Sistema cada 2h aprox
+            # 1. Enviar Frase (10 al día)
             if ahora in horas_frases:
-                enviar_frase_y_sistema_separados(GRUPO_ID)
+                enviar_solo_frase(GRUPO_ID)
                 time.sleep(61)
                 
-            # Imágenes de resultados (Solas + Sistema)
+            # 2. Enviar Sistema (7 al día)
+            if ahora in horas_sistema:
+                enviar_solo_sistema(GRUPO_ID)
+                time.sleep(61)
+
+            # 3. SECUENCIA TOP DE SEÑAL (14:30 y 18:30)
             if ahora == "14:30" or ahora == "18:30":
-                enviar_imagen_y_sistema_separados(GRUPO_ID)
+                bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
+                time.sleep(61)
+
+            if ahora == "14:35" or ahora == "18:35":
+                bot.send_message(GRUPO_ID, "✅ *SEÑAL RESUELTA* \nOrden colocada con éxito. El equipo ya está dentro. ⏳", parse_mode="Markdown")
+                time.sleep(61)
+
+            if ahora == "14:40" or ahora == "18:40":
+                bot.send_message(GRUPO_ID, "💰 *¡YA TENEMOS BENEFICIOS!* \nObjetivo cumplido. Retirando ganancias... ¡Otra victoria más! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
                 time.sleep(61)
                 
         except: pass
         time.sleep(30)
 
+# ==========================================
+# 6. SERVIDOR Y POLLING
+# ==========================================
 def run_server():
     port = int(os.environ.get("PORT", 10000))
     handler = http.server.SimpleHTTPRequestHandler
     with socketserver.TCPServer(("", port), handler) as httpd:
         httpd.serve_forever()
 
-# ==========================================
-# 6. BUCLE INFINITO
-# ==========================================
 if __name__ == "__main__":
     Thread(target=run_server, daemon=True).start()
     Thread(target=scheduler_loop, daemon=True).start()
