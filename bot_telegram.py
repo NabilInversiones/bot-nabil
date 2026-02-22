@@ -10,7 +10,7 @@ from threading import Thread
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==========================================
-# 1. CONFIGURACIÓN
+# 1. CONFIGURACIÓN NIVEL ELITE
 # ==========================================
 TOKEN = "8375170883:AAEo82_IKNHs9jBErXUhA2BUyH0pMkxV04E"
 GRUPO_ID = -1003716695186
@@ -38,7 +38,7 @@ def botones_vip():
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES MOTIVADORAS
+# 2. LAS 100 FRASES MOTIVADORAS (TODAS)
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -161,25 +161,43 @@ def enviar_solo_sistema(chat_id):
     except Exception as e: print(f"Error sistema: {e}")
 
 # ==========================================
-# 4. COMANDOS
+# 4. MANEJO DE PRIVADO Y LIMPIEZA DE GRUPO
 # ==========================================
 @bot.message_handler(commands=['start', 'link'])
 def comando_inteligente(m):
     enviar_solo_sistema(m.chat.id)
 
 @bot.message_handler(content_types=['new_chat_members'])
-def bienvenida_grupo(m):
-    try: bot.delete_message(m.chat.id, m.message_id)
-    except: pass
-    bot.send_message(m.chat.id, f"¡Hola! 👋 Bienvenido.\n\n{TEXTO_SISTEMA_VIP}", parse_mode="Markdown", reply_markup=botones_vip())
+def bienvenida_discreta(m):
+    # 1. Borramos el mensaje de "X se unió al grupo" inmediatamente
+    try:
+        bot.delete_message(m.chat.id, m.message_id)
+    except:
+        pass
+    
+    # 2. Le enviamos el mensaje al PRIVADO a cada usuario nuevo
+    for user in m.new_chat_members:
+        try:
+            texto_bienvenida = (
+                f"👋 *¡Hola {user.first_name}! Bienvenido al equipo de Nabil Inversiones.*\n\n"
+                "Para empezar a ganar dinero hoy mismo con nosotros, sigue estos pasos:\n\n"
+                "1️⃣ *REGÍSTRATE* en QVSE con el botón de abajo.\n"
+                "2️⃣ *DEPÓSITA* el capital que quieras invertir.\n"
+                "3️⃣ *ENVÍAME* captura de tu perfil para darte acceso al VIP.\n\n"
+                "¡Nos vemos dentro! 🚀📈"
+            )
+            bot.send_message(user.id, texto_bienvenida, parse_mode="Markdown", reply_markup=botones_vip())
+        except:
+            # Si el usuario tiene el bot bloqueado o nunca le dio a START, no podemos escribirle
+            pass
 
 # ==========================================
-# 5. RELOJ MAESTRO (10 FRASES Y SISTEMA SIN CHOQUES)
+# 5. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
 # ==========================================
 def scheduler_loop():
-    # 10 Frases distribuidas
+    # 10 Frases al día
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
-    # 7 Mensajes de Sistema
+    # 7 Sistemas al día
     horas_sistema = ["09:00", "11:00", "13:00", "15:00", "17:00", "19:00", "21:00"]
 
     while True:
@@ -194,15 +212,13 @@ def scheduler_loop():
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
-            # SECUENCIA DE SEÑAL
+            # --- SECUENCIA DE SEÑAL EN VIVO (14:30 y 18:30) ---
             if ahora == "14:30" or ahora == "18:30":
                 bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
-
             if ahora == "14:35" or ahora == "18:35":
                 bot.send_message(GRUPO_ID, "✅ *SEÑAL RESUELTA* \nOrden colocada con éxito. El equipo ya está dentro. ⏳", parse_mode="Markdown")
                 time.sleep(61)
-
             if ahora == "14:40" or ahora == "18:40":
                 bot.send_message(GRUPO_ID, "💰 *¡YA TENEMOS BENEFICIOS!* \nObjetivo cumplido. Retirando ganancias... ¡Otra victoria más! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
                 time.sleep(61)
@@ -211,7 +227,7 @@ def scheduler_loop():
         time.sleep(30)
 
 # ==========================================
-# 6. INICIO DEL BOT
+# 6. SERVIDOR WEB Y EJECUCIÓN
 # ==========================================
 def run_server():
     port = int(os.environ.get("PORT", 10000))
