@@ -1,22 +1,35 @@
 import telebot
 import time
 import pytz
-import http.server
-import socketserver
 import random
 import os
 from datetime import datetime
 from threading import Thread
+from flask import Flask
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ==========================================
-# 1. CONFIGURACIÓN NIVEL ELITE
+# 1. SERVIDOR FLASK PARA RENDER (KEEP-ALIVE)
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot Nabil Inversiones Online"
+
+def run_server():
+    # Render usa el puerto que le asigna el sistema
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# ==========================================
+# 2. CONFIGURACIÓN DEL BOT
 # ==========================================
 TOKEN = "8375170883:AAEo82_IKNHs9jBErXUhA2BUyH0pMkxV04E"
 GRUPO_ID = -1003716695186
 ZONA_HORARIA = 'Europe/Madrid'
 
-# threaded=False es vital en Render para evitar conexiones dobles (Error 409)
+# threaded=False evita errores de conexión en servidores gratuitos
 bot = telebot.TeleBot(TOKEN, threaded=False)
 madrid_tz = pytz.timezone(ZONA_HORARIA)
 
@@ -39,7 +52,7 @@ def botones_vip():
     return markup
 
 # ==========================================
-# 2. LAS 100 FRASES MOTIVADORAS
+# 3. LAS 100 FRASES MOTIVADORAS
 # ==========================================
 frases_motivadoras = [
     "El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
@@ -124,7 +137,7 @@ frases_motivadoras = [
 ]
 
 # ==========================================
-# 3. FUNCIONES DE ENVÍO
+# 4. FUNCIONES DE ENVÍO
 # ==========================================
 def enviar_solo_frase(chat_id):
     try:
@@ -141,7 +154,7 @@ def enviar_solo_sistema(chat_id):
     except Exception as e: print(f"Error sistema: {e}")
 
 # ==========================================
-# 4. MANEJO DE PRIVADO Y LIMPIEZA DE GRUPO
+# 5. MANEJO DE MENSAJES
 # ==========================================
 @bot.message_handler(commands=['start', 'link'])
 def comando_inteligente(m):
@@ -151,8 +164,7 @@ def comando_inteligente(m):
 def bienvenida_discreta(m):
     try:
         bot.delete_message(m.chat.id, m.message_id)
-    except:
-        pass
+    except: pass
     
     for user in m.new_chat_members:
         try:
@@ -165,11 +177,10 @@ def bienvenida_discreta(m):
                 "¡Nos vemos dentro! 🚀📈"
             )
             bot.send_message(user.id, texto_privado, parse_mode="Markdown", reply_markup=botones_vip())
-        except:
-            pass
+        except: pass
 
 # ==========================================
-# 5. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
+# 6. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
 # ==========================================
 def scheduler_loop():
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
@@ -187,7 +198,6 @@ def scheduler_loop():
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
-            # SECUENCIA SEÑAL (14:30 y 18:30)
             if ahora == "14:30" or ahora == "18:30":
                 bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
@@ -198,38 +208,30 @@ def scheduler_loop():
                 bot.send_message(GRUPO_ID, "💰 *¡YA TENEMOS BENEFICIOS!* \nObjetivo cumplido. Retirando ganancias... ¡Otra victoria más! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
                 time.sleep(61)
                 
-        except:
-            pass
+        except: pass
         time.sleep(30)
 
 # ==========================================
-# 6. SERVIDOR WEB Y EJECUCIÓN (ANTI-ERROR 409)
+# 7. EJECUCIÓN FINAL
 # ==========================================
-def run_server():
-    port = int(os.environ.get("PORT", 10000))
-    handler = http.server.SimpleHTTPRequestHandler
-    with socketserver.TCPServer(("", port), handler) as httpd:
-        httpd.serve_forever()
-
 if __name__ == "__main__":
-    # Iniciar servidor para Render
+    # Iniciar servidor Flask para Render en segundo plano
     Thread(target=run_server, daemon=True).start()
-    # Iniciar reloj de mensajes
+    
+    # Iniciar reloj de mensajes en segundo plano
     Thread(target=scheduler_loop, daemon=True).start()
     
     print("🚀 Sistema Nabil Inversiones ONLINE")
     
-    # Limpieza absoluta de sesiones previas en Telegram
     try:
         bot.remove_webhook()
         time.sleep(2)
-    except:
-        pass
+    except: pass
 
     while True:
         try:
-            # Iniciamos polling con limpieza de actualizaciones pendientes
+            # Polling infinito para recibir mensajes
             bot.polling(none_stop=True, interval=0, timeout=20)
         except Exception as e:
-            print(f"Conflicto o error: {e}. Reiniciando en 15s...")
+            print(f"Reinicio por error: {e}")
             time.sleep(15)
