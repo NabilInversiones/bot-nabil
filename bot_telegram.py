@@ -180,7 +180,7 @@ def bienvenida_discreta(m):
         except: pass
 
 # ==========================================
-# 6. RELOJ MAESTRO (TAREAS AUTOMÁTICAS)
+# 6. RELOJ MAESTRO (TAREAS AUTOMÁTICAS ACTUALIZADAS)
 # ==========================================
 def scheduler_loop():
     horas_frases = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "21:30", "22:30", "23:30"]
@@ -198,14 +198,21 @@ def scheduler_loop():
                 enviar_solo_sistema(GRUPO_ID)
                 time.sleep(61)
 
+            # --- CICLO DE SEÑALES (PROFESIONAL) ---
+            
+            # Mensaje 1 (30 min): Aviso de Código
             if ahora == "14:30" or ahora == "18:30":
-                bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nEl algoritmo está detectando una entrada inminente. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
+                bot.send_message(GRUPO_ID, "🚨 *ATENTOS A LA SEÑAL...* \nTenemos el código listo para operar. Abrid QVSE ahora mismo. 🔥", parse_mode="Markdown")
                 time.sleep(61)
+
+            # Mensaje 2 (35 min): Confirmación de ejecución
             if ahora == "14:35" or ahora == "18:35":
-                bot.send_message(GRUPO_ID, "✅ *SEÑAL RESUELTA* \nOrden colocada con éxito. El equipo ya está dentro. ⏳", parse_mode="Markdown")
+                bot.send_message(GRUPO_ID, "✅ *SISTEMA ENVIADO* \nCódigo aplicado con éxito. El equipo ya está dentro de la operación. ⏳", parse_mode="Markdown")
                 time.sleep(61)
+
+            # Mensaje 3 (40 min): Beneficios y Crecimiento
             if ahora == "14:40" or ahora == "18:40":
-                bot.send_message(GRUPO_ID, "💰 *¡YA TENEMOS BENEFICIOS!* \nObjetivo cumplido. Retirando ganancias... ¡Otra victoria más! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
+                bot.send_message(GRUPO_ID, "💰 *¡SESIÓN COMPLETADA!* \nObjetivo cumplido con éxito. El capital sigue creciendo y sumando beneficios a vuestras cuentas. ¡Otra victoria para el equipo! 💸📈", parse_mode="Markdown", reply_markup=botones_vip())
                 time.sleep(61)
                 
         except: pass
